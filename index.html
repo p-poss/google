@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KOTO + PATRICK</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+  <style>
+    @font-face {
+      font-family: 'PPNeueMontreal';
+      src: url('fonts/PPNeueMontreal-SemiBold.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --quint-in-out: cubic-bezier(0.85, 0, 0.15, 1);
+      --quint-out: cubic-bezier(0, 0.55, 0.45, 1);
+      --sine-in-out: cubic-bezier(0.37, 0, 0.63, 1);
+      --step-5: clamp(3.6826rem, 3.2016rem + 1.9735vi, 6.3592rem);
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Hide scrollbar globally */
+    html, body {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      display: none;
+    }
+
+    body {
+      background: #000000;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .coverflow-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .coverflow-track {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      perspective: 1000px;
+      animation: fadein 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    .card {
+      position: absolute;
+      left: calc(65vw - 20px);
+      top: 50%;
+      width: calc(70vw - 40px);
+      height: calc(100vh - 260px);
+      border-radius: 2px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 10px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 1.5rem;
+      font-weight: normal;
+      color: rgba(255, 255, 255, 0.95);
+      cursor: pointer;
+      transform-origin: center center;
+      contain: content;
+    }
+
+    .card-title {
+      font-size: 32px;
+      font-weight: normal;
+      line-height: 34px;
+      letter-spacing: -1px;
+      text-align: center;
+      background: transparent;
+      padding: 10px 12px 8px;
+      border-radius: 2px;
+      transition: background 0.25s;
+    }
+
+    .card.active .card-title,
+    .card:hover .card-title {
+      background: #4D4D4D;
+    }
+
+    .card-number {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 32px;
+      font-weight: normal;
+      line-height: 34px;
+      letter-spacing: -1px;
+      text-align: center;
+      background: transparent;
+      padding: 10px 12px 8px;
+      border-radius: 2px;
+      transition: background 0.25s;
+    }
+
+    .card.active .card-number,
+    .card:hover .card-number {
+      background: #4D4D4D;
+    }
+
+    /* Last card title at bottom */
+    .card:last-child {
+      align-items: flex-end;
+      padding-top: 0;
+      padding-bottom: 10px;
+    }
+
+
+    /* Fullscreen button */
+    .fullscreen-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      font-size: 19px;
+      line-height: 18px;
+      letter-spacing: -0.5px;
+      cursor: pointer;
+      pointer-events: none;
+      padding: 10px 12px 8px;
+      border-radius: 2px;
+      transition: background 0.25s;
+    }
+
+    .card.active .fullscreen-btn {
+      pointer-events: auto;
+      background: #4D4D4D;
+    }
+
+    .card:hover .fullscreen-btn {
+      background: #4D4D4D;
+    }
+
+    .fullscreen-btn::after {
+      content: '↙';
+      padding-left: 2px;
+      display: inline-block;
+      max-width: 0;
+      opacity: 0;
+      vertical-align: bottom;
+      transition: max-width 0.25s, opacity 0.25s;
+    }
+
+    .card.active .fullscreen-btn:hover::after {
+      max-width: calc(1.5em + 2px);
+      opacity: 1;
+      transition: max-width 0.25s, opacity 0.25s;
+    }
+
+    .card.fullscreen .fullscreen-btn::after {
+      content: '↘';
+    }
+
+    /* Fullscreen card state */
+    .card.fullscreen {
+      z-index: 1000 !important;
+    }
+
+    /* Card content area */
+    .card-content {
+      position: absolute;
+      top: 72px;
+      left: 12.5px;
+      right: 12.5px;
+      bottom: 23px;
+      background: transparent;
+      border-radius: 1px;
+      transition: background 0.25s;
+    }
+
+    .card-iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 1px;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 0;
+      transition: opacity 0.25s, visibility 0.25s;
+      pointer-events: none;
+      background: #12130f;
+    }
+
+    .card-iframe.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .card-iframe.interactive {
+      pointer-events: auto;
+    }
+
+    .card-video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 1px;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 0;
+      transition: opacity 0.25s, visibility 0.25s;
+      pointer-events: none;
+      object-fit: cover;
+      background: #000000;
+    }
+
+    .card-video.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .card-video.interactive {
+      pointer-events: auto;
+    }
+
+    .card-content-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #686868;
+      border-radius: 1px;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .card.active .card-content-overlay,
+    .card:hover .card-content-overlay {
+      opacity: 1;
+    }
+
+    .card-content-overlay.hidden {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+
+    .play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 78px;
+      height: 78px;
+      border: none;
+      border-radius: 50%;
+      background: #4D4D4D;
+      cursor: pointer;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s, background 0.25s;
+    }
+
+    .card.active .play-button {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .card:hover .play-button {
+      opacity: 1;
+    }
+
+    .play-button:hover {
+      background: #000000;
+    }
+
+    .play-button::after {
+      content: '';
+      display: block;
+      width: 0;
+      height: 0;
+      border-left: 23px solid #FFFFFF;
+      border-top: 14px solid transparent;
+      border-bottom: 14px solid transparent;
+      margin-left: 5px;
+    }
+
+    .play-button.hidden {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Card counter */
+    .card-counter {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      display: flex;
+      border: 1px solid #4D4D4D;
+      border-radius: 2px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 15px;
+      line-height: 16px;
+      letter-spacing: -0.2px;
+      color: #4D4D4D;
+    }
+
+    .card-counter-current,
+    .card-counter-total {
+      padding: 10px 12px 8px;
+      text-align: center;
+      position: relative;
+    }
+
+    .card-counter-current {
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .card-counter-current::before {
+      content: '10';
+      visibility: hidden;
+    }
+
+    .counter-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #4D4D4D;
+      opacity: 0;
+      z-index: 0;
+    }
+
+    .number-strip {
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+
+    .number-strip span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: calc(1rem + 8px);
+    }
+
+    .card-counter-current {
+      border-right: 1px solid #4D4D4D;
+    }
+
+    /* Left content container */
+    .left-content {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 40px;
+      width: calc(30vw - 80px);
+      z-index: 9999;
+    }
+
+    /* Logo positioning */
+    .logo {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      user-select: none;
+      cursor: pointer;
+      white-space: nowrap;
+      color: #4D4D4D;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 41px;
+      font-weight: normal;
+      line-height: 36px;
+      letter-spacing: -1.8px;
+      animation: logoSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+      transition: color 0.25s;
+    }
+
+    .logo:hover {
+      color: #FFFFFF;
+    }
+
+    /* Text stack container - flexbox layout */
+    .text-stack {
+      position: absolute;
+      top: 125.5px;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Greeting text */
+    .greeting {
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 57px;
+      line-height: 52px;
+      letter-spacing: -1.6px;
+      color: #FFFFFF;
+      min-height: 208px; /* 4x line-height (52px) */
+      animation: horizontalSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    /* Subtext below greeting */
+    .subtext {
+      margin-top: 34px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 19px;
+      line-height: 18px;
+      letter-spacing: -0.5px;
+      color: #FFFFFF;
+      min-height: 54px; /* 3x line-height (18px) */
+      animation: horizontalSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    /* Small text below subtext */
+    .small-text {
+      margin-top: 8px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 15.5px;
+      line-height: 14px;
+      letter-spacing: -0.5px;
+      color: #4D4D4D;
+      animation: horizontalSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    .small-text a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    @keyframes horizontalSlideIn {
+      0% {
+        opacity: 0;
+        transform: translateX(-40px);
+      }
+      100% {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* Index label */
+    .index-label {
+      position: absolute;
+      bottom: 62px;
+      left: 0;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 15px;
+      line-height: 16px;
+      letter-spacing: -0.2px;
+      color: #4D4D4D;
+
+      /* Slide in animation */
+      animation: bottomSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    /* Card counter slide in animation */
+    .card-counter {
+      animation: bottomSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    /* Controls section */
+    .controls-label {
+      position: absolute;
+      bottom: 62px;
+      left: 100px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 15px;
+      line-height: 16px;
+      letter-spacing: -0.2px;
+      color: #4D4D4D;
+      animation: bottomSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 100px;
+      display: flex;
+      border: 1px solid #4D4D4D;
+      border-radius: 2px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 15px;
+      line-height: 16px;
+      letter-spacing: -0.2px;
+      color: #4D4D4D;
+      animation: bottomSlideIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+    }
+
+    .controls-cell {
+      padding: 10px 12px 8px;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .controls-cell::before {
+      content: '10';
+      visibility: hidden;
+    }
+
+    .controls-cell span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+    }
+
+    .control-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #4D4D4D;
+      opacity: 0;
+      z-index: 0;
+    }
+
+    .controls-cell:first-child {
+      border-right: 1px solid #4D4D4D;
+    }
+
+    /* Back to start button */
+    .back-to-start {
+      position: fixed;
+      bottom: 20px;
+      left: 240px;
+      display: flex;
+      border: 1px solid #4D4D4D;
+      border-radius: 2px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 15px;
+      line-height: 16px;
+      letter-spacing: -0.2px;
+      color: #4D4D4D;
+      padding: 10px 12px 8px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      z-index: 9999;
+    }
+
+    .back-to-start.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .back-to-start::before {
+      content: '10';
+      visibility: hidden;
+    }
+
+    .back-to-start span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+    }
+
+    .back-to-start-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #4D4D4D;
+      opacity: 0;
+      z-index: 0;
+    }
+
+    /* Open link button */
+    .open-link {
+      position: relative;
+      margin-top: 7px;
+      align-self: flex-start;
+      display: flex;
+      border: 1px solid #4D4D4D;
+      border-radius: 2px;
+      font-family: 'PPNeueMontreal', sans-serif;
+      font-size: 15px;
+      line-height: 16px;
+      letter-spacing: -0.2px;
+      color: #4D4D4D;
+      padding: 10px 12px 8px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .open-link.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .open-link::before {
+      content: '10';
+      visibility: hidden;
+    }
+
+    .open-link span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+    }
+
+    .open-link-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #4D4D4D;
+      opacity: 0;
+      z-index: 0;
+    }
+
+    @keyframes fadein {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes bottomSlideIn {
+      0% {
+        opacity: 0;
+        transform: translate(-40px, 40px);
+      }
+      100% {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes bottomSlideInVertical {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* Page container */
+    .page-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .page-container > * {
+      pointer-events: auto;
+    }
+
+    /* Logo intro animation */
+    @keyframes logoSlideIn {
+      0% {
+        opacity: 0;
+        transform: translate(-40px, -40px);
+      }
+      100% {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="left-content" id="left-content">
+      <div class="logo" id="logo">P.P.©&#8217;26</div>
+      <div class="text-stack">
+        <div class="greeting">Hey Koto,</div>
+        <div class="subtext">Since Design Engineer is a new role for Koto, I wanted to share some of the areas I've been exploring and how I could bring them into the team.</div>
+        <div class="small-text">· Patrick Poss</div>
+        <div class="open-link" id="open-link"><div class="open-link-highlight"></div><span>↗</span></div>
+      </div>
+      <div class="index-label">Index:</div>
+      <div class="card-counter"><span class="card-counter-current"><div class="counter-highlight"></div><div class="number-strip"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></span><span class="card-counter-total">10</span></div>
+      <div class="controls-label">Move:</div>
+      <div class="controls"><span class="controls-cell" id="control-up"><div class="control-highlight"></div><span>←</span></span><span class="controls-cell" id="control-down"><div class="control-highlight"></div><span>→</span></span></div>
+    </div>
+    <div class="back-to-start" id="back-to-start"><div class="back-to-start-highlight"></div><span>↗</span></div>
+  </div>
+  <div class="coverflow-container">
+    <div class="coverflow-track">
+      <div class="card" data-index="0" data-no-link="true"><span class="card-title">Second Interview:&nbsp; Tom + Dan</span><span class="card-number">1</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><iframe class="card-iframe" style="background: #0A0A0E" data-src="https://super-particles.vercel.app/"></iframe><div class="card-content-overlay" style="background: url('images/card-1.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="1" data-no-link="true"><span class="card-title">Introduction</span><span class="card-number">2</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><iframe class="card-iframe" style="background: #ffffff" data-src="https://sdf-blur.vercel.app/"></iframe><div class="card-content-overlay" style="background: url('images/card-2.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="2"><span class="card-title">stack.patrickposs.com</span><span class="card-number">3</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><iframe class="card-iframe" data-src="https://cubes-two.vercel.app"></iframe><div class="card-content-overlay" style="background: url('images/card-3.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="3"><span class="card-title">claude.dj</span><span class="card-number">4</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><iframe class="card-iframe" style="background: #100A05" data-src="https://www.claude.dj"></iframe><div class="card-content-overlay" style="background: url('images/card-4.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="4"><span class="card-title">gradient.patrickposs.com</span><span class="card-number">5</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><iframe class="card-iframe" style="background: transparent" data-src="https://gradient.patrickposs.com/?noise=4&scale=2.0&octaves=7&persistence=0.36&lacunarity=3.4&distortion=1.4&speed=0.21&blend=1&brightness=1.53&contrast=1.49&colors=4&c1=d0e062&c2=00f8d3&c3=f04de7&c4=ea6818"></iframe><div class="card-content-overlay" style="background: url('images/card-5.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="5"><span class="card-title">audio.patrickposs.com</span><span class="card-number">6</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><iframe class="card-iframe" style="background: #ffffff" data-src="https://audio-reactive-hover.vercel.app/"></iframe><div class="card-content-overlay" style="background: url('images/card-6.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="6"><span class="card-title">silica.patrickposs.com</span><span class="card-number">7</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><iframe class="card-iframe" style="background: #000000" data-src="https://silica.patrickposs.com/"></iframe><div class="card-content-overlay" style="background: url('images/card-7.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="7"><span class="card-title">Hardware</span><span class="card-number">8</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><video class="card-video" data-src="https://poss.b-cdn.net/puffco-peak-use.mp4" loop muted playsinline></video><div class="card-content-overlay" style="background: url('images/card-8.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="8" data-link="https://drinkcourtside.com/"><span class="card-title">drinkcourtside.com</span><span class="card-number">9</span><button class="fullscreen-btn">Fullscreen</button><div class="card-content"><video class="card-video" data-src="https://poss.b-cdn.net/courtside-hero.mp4" loop muted playsinline></video><div class="card-content-overlay" style="background: url('images/card-9.avif') center/cover no-repeat;"></div><button class="play-button"></button></div></div>
+      <div class="card" data-index="9"><span class="card-title">The End</span></div>
+    </div>
+  </div>
+
+  <!-- GSAP Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+  <!-- Lenis Smooth Scroll -->
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+  <!-- Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    // Current date string for slide 1
+    const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    // Disable browser scroll restoration and start at top
+    history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
+    // Register GSAP plugins
+    gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+    // Initialize Lenis smooth scroll
+    const lenis = new Lenis({
+      duration: 1.0,
+      easing: (t) => 1 - Math.pow(1 - t, 3),  // easeOutCubic - snappier
+      smoothWheel: true,
+      wheelMultiplier: 0.3
+    });
+
+    // Connect Lenis to ScrollTrigger
+    lenis.on('scroll', ScrollTrigger.update);
+
+    // Add Lenis to GSAP ticker
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+    gsap.ticker.lagSmoothing(0);
+
+    // Configuration
+    const cards = gsap.utils.toArray('.card');
+    const cardCount = cards.length;
+    const scrollPerCard = 150; // vh per card transition
+    const expandScrollDistance = 0; // No expansion after last card
+    const totalScrollDistance = cardCount * scrollPerCard + expandScrollDistance;
+
+    // Transform calculation based on relative position
+    function getCardTransform(relativePos) {
+      // Cards behind active card - continuous stacking with visible depth
+      if (relativePos < 0) {
+        // Each card further back gets slightly more offset and smaller
+        // Using continuous calculation so every card is at a unique position
+        const depth = -relativePos; // positive number, 0.1 to cardCount
+
+        // y: starts at 0 for active, moves up progressively (-2.5 per depth unit)
+        const y = -depth * 3;
+
+        // scale: starts at 1, decreases by 0.02 per depth unit, min 0.5
+        const scale = 1 - depth * 0.02;
+
+        // zIndex: cards further back have lower z-index
+        const zIndex = Math.max(0, 10 - Math.ceil(depth));
+
+        return { y, scale, zIndex };
+      }
+      // Cards entering from below (approaching active)
+      // Higher relativePos = higher zIndex so next card appears in front
+      if (relativePos <= 1) {
+        const t = relativePos; // 0 to 1
+        // y: 100% shows ~50px of next card from bottom
+        // scale: grows from 0.85 to 1 as card approaches active position
+        return {
+          y: gsap.utils.interpolate(0, 102.5, t),
+          scale: gsap.utils.interpolate(1, 0.85, t),
+          zIndex: 10 + Math.ceil(relativePos)
+        };
+      }
+      // Cards waiting below (smooth transition to off-screen)
+      if (relativePos <= 2) {
+        const t = relativePos - 1; // 0 to 1
+        return {
+          y: gsap.utils.interpolate(102.5, 150, t),
+          scale: 0.85,
+          zIndex: 12
+        };
+      }
+      // Cards fully off-screen below
+      return { y: 150, scale: 0.85, zIndex: 12 };
+    }
+
+    // Track which card is currently active
+    let currentActiveCardIndex = 0;
+
+    // Track tilt effect state
+    let currentTiltCard = null;
+    let isTilting = false;
+
+    // Track fullscreen mode to lock scrolling
+    let isFullscreenMode = false;
+    let savedScrollPosition = 0;
+
+    // Track programmatic scrolling to preserve indicator state
+    let isProgrammaticScroll = false;
+
+    // Track cursor position for confetti origin
+    let cursorX = 0.5, cursorY = 0.5;
+    document.addEventListener('mousemove', (e) => {
+      cursorX = e.clientX / window.innerWidth;
+      cursorY = e.clientY / window.innerHeight;
+    });
+
+    // Guard so confetti doesn't fire during page init
+    let confettiReady = false;
+    window.addEventListener('scroll', () => { confettiReady = true; }, { once: true });
+
+    // Left content container for fullscreen animation
+    const leftContent = document.getElementById('left-content');
+    const logo = document.getElementById('logo');
+
+    // Text elements for dynamic content
+    const greetingEl = document.querySelector('.greeting');
+    const subtextEl = document.querySelector('.subtext');
+    const smallTextEl = document.querySelector('.small-text');
+    smallTextEl.textContent = todayStr + ' · Patrick Poss';
+
+    // Content for each slide
+    const slideContent = [
+      { greeting: "Hey Koto,", subtext: "Since Design Engineer is a new role for Koto, I wanted to share some of the areas I've been exploring and how I could bring them into the team.", smallText: todayStr + " · Patrick Poss" },
+      { greeting: "Exciting Times!", subtext: "I want to bring the AI workflows I've been experimenting with into the studio — helping the team move faster and collaborating to develop new ones.", smallText: "Opus 4.5 · CodeRabbit · ComfyUI · Figma MCP" },
+      { greeting: "Web-Friendly 3D Physics", subtext: "Bringing weight and physicality to 3D brand experiences — tactile, responsive, and lightweight in the browser.", smallText: "Three.js · GSAP" },
+      { greeting: "Interactive AI Experiences", subtext: "Building novel interfaces and cross-disciplinary applications that make AI a creative collaborator.", smallText: "Claude API · ElevenLabs API · Strudel" },
+      { greeting: "Web-Based Design Tools", subtext: "Building internal and client-facing tools that bridge the gap between design exploration and production code.", smallText: "WebGL · GLSL" },
+      { greeting: "Context-Aware Visuals", subtext: "Making interfaces respond to the world around them — audio, camera, motion — so no two experiences are the same.", smallText: "Three.js · GLSL · Meyda" },
+      { greeting: "Real-Time 3D Optical Interfaces", subtext: "Meshless 3D lenses that warp, blur, and reveal hidden content through real-time refraction and rotation.", smallText: "Three.js · GLSL · SDF · Raymarching" },
+      { greeting: "Physical & Spatial Prototypes", subtext: "Building interactive installations, AR experiences, and physical touchpoints for brand experiences.", smallText: "Raspberry Pi · Arduino · 3D Builds · AR" },
+      { greeting: "Bonus: I've Built a Brand Too", subtext: "Firsthand experience turning a product idea into a sellable brand — Courtside, available in store shelves across the US.", smallText: "Branding · Packaging · Shopify" },
+      { greeting: "Thank You,", subtext: "Thanks for taking the time — let's make something amazing together.", smallText: "<a href=\"mailto:hey@patrickposs.com\">hey@patrickposs.com</a>" }
+    ];
+
+    // Update text content instantly
+    function updateSlideContent(index) {
+      const content = slideContent[index];
+      if (!content) return;
+
+      greetingEl.textContent = content.greeting;
+      subtextEl.textContent = content.subtext;
+      smallTextEl.innerHTML = content.smallText;
+    }
+
+    // Number strip element and cell height for counter
+    const numberStrip = document.querySelector('.number-strip');
+    const numberCellHeight = numberStrip.querySelector('span').offsetHeight;
+    const counterHighlight = document.querySelector('.counter-highlight');
+    const counterCurrent = document.querySelector('.card-counter-current');
+
+    // Update number strip position based on active index
+    function updateNumberStrip(activeIndex) {
+      gsap.set(numberStrip, { y: -activeIndex * numberCellHeight });
+    }
+
+    // Fade in/out counter highlight
+    let isCounterHighlightLocked = false;
+
+    function showCounterHighlight(lock = false) {
+      if (lock) isCounterHighlightLocked = true;
+      gsap.to(counterHighlight, { opacity: 1, duration: 0.25 });
+      gsap.to(counterCurrent, { color: '#000000', duration: 0.25 });
+    }
+
+    function hideCounterHighlight(unlock = true) {
+      if (unlock) isCounterHighlightLocked = false;
+      gsap.to(counterHighlight, { opacity: 0, duration: 0.25, overwrite: true });
+      gsap.to(counterCurrent, { color: '#4D4D4D', duration: 0.25, overwrite: true });
+    }
+
+    function hideCounterHighlightInstant() {
+      isCounterHighlightLocked = false;
+      gsap.set(counterHighlight, { opacity: 0 });
+      gsap.set(counterCurrent, { color: '#4D4D4D' });
+    }
+
+    // Update all cards based on current active index (instant)
+    function updateCards(activeIndex) {
+      cards.forEach((card, i) => {
+        const relativePos = i - activeIndex;
+        const transform = getCardTransform(relativePos);
+
+        // Calculate text and background color based on distance from active
+        // Cards ahead get a half-step offset so no two cards are the same
+        const distance = Math.abs(relativePos);
+        const aheadOffset = relativePos > 0 ? 0.5 : 0;
+        const adjustedDistance = distance + aheadOffset;
+
+        // Distance 0: white (255), progressively darker
+        const textTint = Math.max(15, 255 - adjustedDistance * 25);
+        const bgTint = Math.max(15, 255 - adjustedDistance * 22);
+
+        const bgColor = `rgba(${bgTint}, ${bgTint}, ${bgTint}, 0.3)`;
+        gsap.set(card, {
+          x: '-50%',
+          y: `${transform.y}%`,
+          yPercent: -50,
+          scale: transform.scale,
+          zIndex: transform.zIndex,
+          color: `rgb(${textTint}, ${textTint}, ${textTint})`,
+          background: bgColor
+        });
+        card.style.setProperty('--card-bg', bgColor);
+
+        // Check if this card should become the new active card
+        // Skip during programmatic scroll to prevent flickering - active state set on complete
+        if (!isProgrammaticScroll && relativePos > -0.1 && relativePos <= 0.15) {
+          if (currentActiveCardIndex !== i) {
+            // Reset tilt on all cards when active changes
+            cards.forEach(c => gsap.set(c, { rotateX: 0, rotateY: 0 }));
+            isTilting = false;
+            currentTiltCard = null;
+            // Unload iframe from previous card
+            unloadCardIframe(cards[currentActiveCardIndex]);
+            // Remove active class from previous card
+            cards[currentActiveCardIndex].classList.remove('active');
+            // Add active class to new card
+            card.classList.add('active');
+            currentActiveCardIndex = i;
+            // Update text content
+            updateSlideContent(i);
+            // Show/hide back-to-start button on last card
+            const backToStartBtn = document.getElementById('back-to-start');
+            if (i === cardCount - 1) {
+              backToStartBtn.classList.add('visible');
+              if (confettiReady) {
+                confetti({
+                  particleCount: 150,
+                  spread: 80,
+                  origin: { x: cursorX, y: cursorY },
+                  colors: ['#ffffff', '#d4d4d4', '#a3a3a3', '#737373', '#404040']
+                });
+              }
+            } else {
+              backToStartBtn.classList.remove('visible');
+            }
+            // Update open-link button
+            updateOpenLinkButton(i);
+          }
+        }
+      });
+    }
+
+    // Animate all cards to their positions based on active index (for fullscreen transition)
+    function animateCardsToPosition(activeIndex, duration, onComplete) {
+      const timeline = gsap.timeline({ onComplete });
+
+      // Animate number strip to match
+      gsap.to(numberStrip, { y: -activeIndex * numberCellHeight, duration: duration, ease: 'power2.out' });
+
+      cards.forEach((card, i) => {
+        const relativePos = i - activeIndex;
+        const transform = getCardTransform(relativePos);
+
+        // Calculate text and background color based on distance from active
+        const distance = Math.abs(relativePos);
+        const aheadOffset = relativePos > 0 ? 0.5 : 0;
+        const adjustedDistance = distance + aheadOffset;
+
+        const textTint = Math.max(15, 255 - adjustedDistance * 25);
+        const bgTint = Math.max(15, 255 - adjustedDistance * 22);
+        const bgColor = `rgba(${bgTint}, ${bgTint}, ${bgTint}, 0.3)`;
+
+        timeline.to(card, {
+          x: '-50%',
+          y: `${transform.y}%`,
+          yPercent: -50,
+          scale: transform.scale,
+          zIndex: transform.zIndex,
+          color: `rgb(${textTint}, ${textTint}, ${textTint})`,
+          background: bgColor,
+          duration: duration,
+          ease: 'power2.out',
+          onUpdate: function() { card.style.setProperty('--card-bg', bgColor); }
+        }, 0); // All cards animate at the same time (position 0)
+      });
+
+      return timeline;
+    }
+
+    // Initialize cards at starting position
+    cards[0].classList.add('active');
+    updateCards(0);
+    updateNumberStrip(0);
+
+    // Calculate the progress threshold where last card expansion begins
+    const cardScrollTotal = cardCount * scrollPerCard;
+    const expansionStartProgress = cardScrollTotal / totalScrollDistance;
+
+    // Create ScrollTrigger and store reference
+    const mainScrollTrigger = ScrollTrigger.create({
+      trigger: '.coverflow-container',
+      start: 'top top',
+      end: `+=${totalScrollDistance}vh`,
+      scrub: 0.3,
+      pin: true,
+      onUpdate: (self) => {
+        // Skip updates while in fullscreen mode
+        if (isFullscreenMode) return;
+
+        // Hide counter highlight on scroll (instant), unless programmatic scroll
+        if (!isProgrammaticScroll) {
+          hideCounterHighlightInstant();
+        }
+
+        // Normal card progression
+        const activeIndex = self.progress * (cardCount - 1);
+        updateCards(activeIndex);
+        updateNumberStrip(activeIndex);
+      }
+    });
+
+    // Force scroll to top after everything initializes (catches late browser scroll restoration)
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      ScrollTrigger.refresh();
+    }, 50);
+
+    // Click-to-activate functionality
+    cards.forEach((card, index) => {
+      card.addEventListener('click', () => {
+        // Don't activate if in fullscreen mode
+        if (isFullscreenMode) return;
+
+        // Set active state immediately to prevent flicker
+        setActiveCard(index);
+
+        // Calculate target scroll position within card progression portion only
+        const cardProgress = index / (cardCount - 1);
+        const targetProgress = cardProgress * expansionStartProgress;
+        const scrollTrigger = ScrollTrigger.getAll()[0];
+        const targetScroll = scrollTrigger.start + (scrollTrigger.end - scrollTrigger.start) * targetProgress;
+
+        // Smooth scroll to target
+        isProgrammaticScroll = true;
+        gsap.to(window, {
+          scrollTo: targetScroll,
+          duration: 0.8,
+          ease: 'power2.out',
+          onComplete: () => {
+            isProgrammaticScroll = false;
+            showCounterHighlight(true); // Lock the highlight
+          }
+        });
+      });
+    });
+
+    // Counter left cell hover and click functionality
+    counterCurrent.addEventListener('mouseenter', () => {
+      showCounterHighlight();
+    });
+
+    counterCurrent.addEventListener('mouseleave', () => {
+      // Only hide if not locked on from a click
+      if (!isCounterHighlightLocked) {
+        hideCounterHighlight(false); // Don't unlock on hover leave
+      }
+    });
+
+    counterCurrent.addEventListener('click', () => {
+      // Don't activate if in fullscreen mode
+      if (isFullscreenMode) return;
+
+      // Scroll to make the current card perfectly centered
+      const cardProgress = currentActiveCardIndex / (cardCount - 1);
+      const targetProgress = cardProgress * expansionStartProgress;
+      const targetScroll = mainScrollTrigger.start + (mainScrollTrigger.end - mainScrollTrigger.start) * targetProgress;
+
+      isProgrammaticScroll = true;
+      gsap.to(window, {
+        scrollTo: targetScroll,
+        duration: 0.8,
+        ease: 'power2.out',
+        onComplete: () => {
+          isProgrammaticScroll = false;
+          showCounterHighlight(true); // Lock the highlight
+        }
+      });
+    });
+
+    // Fullscreen button functionality
+    let fullscreenCard = null;
+    let fadedNextCard = null;
+    let fadedBehindCards = [];
+    let isAnimating = false;
+    let isKeyNavAnimating = false;
+
+    document.querySelectorAll('.fullscreen-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent card click handler
+        const card = btn.closest('.card');
+
+        if (!card.classList.contains('active') || isAnimating) return;
+
+        if (fullscreenCard === card) {
+          exitFullscreen();
+          return;
+        }
+
+        isAnimating = true;
+
+        // Reset tilt before fullscreen animation
+        resetTilt();
+
+        // Disable button hover during animation to prevent arrow swap
+        btn.style.pointerEvents = 'none';
+
+        // Hide counter highlight
+        hideCounterHighlight();
+
+        // Enter fullscreen
+        if (fullscreenCard) {
+          fullscreenCard.classList.remove('fullscreen');
+        }
+
+        // Save scroll position and disable scrolling
+        savedScrollPosition = window.scrollY;
+        isFullscreenMode = true;
+        document.body.style.overflow = 'hidden';
+        lenis.stop();
+
+        const cardIndex = parseInt(card.dataset.index);
+
+        // First, animate ALL cards to their proper positions
+        animateCardsToPosition(cardIndex, 0.5, () => {
+          // Now at center position - raise z-index
+          gsap.set(card, { zIndex: 1000 });
+          card.classList.add('fullscreen');
+
+          // Performance optimizations before animating size
+          card.style.contain = 'layout';
+          card.style.overflow = 'hidden';
+          card.style.willChange = 'width, height';
+
+          // Then expand to fullscreen (centered)
+          gsap.to(card, {
+            left: '50%',
+            width: 'calc(100vw - 80px)',
+            height: 'calc(100vh - 40px)',
+            duration: 0.5,
+            ease: 'power2.inOut',
+            onComplete: () => {
+              // Remove will-change after animation (keep contain and overflow)
+              card.style.willChange = '';
+              // Restore button hover
+              btn.style.pointerEvents = '';
+              fullscreenCard = card;
+              isAnimating = false;
+            }
+          });
+
+          // Animate left content off-screen
+          gsap.to(leftContent, {
+            left: 'calc(-30vw + 80px)',
+            duration: 0.5,
+            ease: 'power2.inOut'
+          });
+
+          // Fade out the next card in order
+          fadedNextCard = cards[cardIndex + 1];
+          if (fadedNextCard) {
+            gsap.to(fadedNextCard, {
+              opacity: 0,
+              duration: 0.25
+            });
+          }
+
+          // Fade out cards behind
+          fadedBehindCards = cards.slice(0, cardIndex);
+          fadedBehindCards.forEach(behindCard => {
+            gsap.to(behindCard, {
+              opacity: 0,
+              duration: 0.25
+            });
+          });
+        });
+      });
+    });
+
+    // Exit fullscreen helper function
+    function exitFullscreen() {
+      if (!fullscreenCard || isAnimating) return;
+
+      isAnimating = true;
+      const card = fullscreenCard;
+      const cardBtn = card.querySelector('.fullscreen-btn');
+
+      // Disable button hover during animation to prevent arrow swap
+      if (cardBtn) cardBtn.style.pointerEvents = 'none';
+
+      // Re-enable scrolling
+      document.body.style.overflow = '';
+      window.scrollTo(0, savedScrollPosition);
+      lenis.start();
+
+      // Animate left content back to original position
+      gsap.to(leftContent, {
+        left: 40,
+        duration: 0.5,
+        ease: 'power2.inOut'
+      });
+
+      // Fade back in the next card
+      if (fadedNextCard) {
+        gsap.to(fadedNextCard, {
+          opacity: 1,
+          duration: 0.25,
+          delay: 0.25,
+          onComplete: () => {
+            gsap.set(fadedNextCard, { clearProps: 'opacity' });
+            fadedNextCard = null;
+          }
+        });
+      }
+
+      // Fade back in cards behind
+      fadedBehindCards.forEach(behindCard => {
+        gsap.to(behindCard, {
+          opacity: 1,
+          duration: 0.25,
+          delay: 0.25,
+          onComplete: () => {
+            gsap.set(behindCard, { clearProps: 'opacity' });
+          }
+        });
+      });
+      fadedBehindCards = [];
+
+      // Performance optimization before animating size
+      card.style.willChange = 'width, height';
+
+      // Keep z-index high during shrink, shrink back to normal size
+      gsap.to(card, {
+        left: 'calc(65vw - 20px)',
+        width: 'calc(70vw - 40px)',
+        height: 'calc(100vh - 260px)',
+        x: '-50%',
+        yPercent: -50,
+        y: '0%',
+        scale: 1,
+        duration: 0.5,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          // Now at center with normal scale - drop z-index back to normal
+          gsap.set(card, { zIndex: 10 });
+          card.classList.remove('fullscreen');
+          // Remove performance optimizations
+          card.style.contain = '';
+          card.style.overflow = '';
+          card.style.willChange = '';
+          // Restore button hover
+          if (cardBtn) cardBtn.style.pointerEvents = '';
+          fullscreenCard = null;
+          showCounterHighlight(true); // Lock the highlight
+          isAnimating = false;
+          // Re-enable card updates
+          isFullscreenMode = false;
+        }
+      });
+    }
+
+    // Unload iframe/video and reset overlay for a card
+    function unloadCardIframe(card) {
+      const iframe = card.querySelector('.card-iframe');
+      const video = card.querySelector('.card-video');
+      const overlay = card.querySelector('.card-content-overlay');
+      const playBtn = card.querySelector('.play-button');
+
+      if (iframe && iframe.src) {
+        // Fade out iframe and disable interaction
+        iframe.classList.remove('visible', 'interactive');
+        // Unload after fade
+        setTimeout(() => {
+          iframe.src = '';
+        }, 250);
+      }
+      if (video && video.src) {
+        // Pause and fade out video
+        video.pause();
+        video.classList.remove('visible', 'interactive');
+        // Unload after fade
+        setTimeout(() => {
+          video.src = '';
+          video.load();
+        }, 250);
+      }
+      if (overlay) {
+        overlay.classList.remove('hidden');
+      }
+      if (playBtn) {
+        playBtn.classList.remove('hidden');
+      }
+    }
+
+    // Set active card directly (used after programmatic scroll)
+    function setActiveCard(index) {
+      if (currentActiveCardIndex === index) return;
+
+      // Unload iframe from previous card
+      unloadCardIframe(cards[currentActiveCardIndex]);
+
+      // Remove active class from previous card
+      cards[currentActiveCardIndex].classList.remove('active');
+      // Add active class to new card
+      cards[index].classList.add('active');
+      currentActiveCardIndex = index;
+      // Update text content
+      updateSlideContent(index);
+      // Show/hide back-to-start button on last card
+      const backToStartBtn = document.getElementById('back-to-start');
+      if (index === cardCount - 1) {
+        backToStartBtn.classList.add('visible');
+      } else {
+        backToStartBtn.classList.remove('visible');
+      }
+      // Update open-link button
+      updateOpenLinkButton(index);
+    }
+
+    // Navigation function (shared by keyboard and control buttons)
+    function navigateCards(direction) {
+      if (isFullscreenMode || isAnimating || isKeyNavAnimating) return;
+
+      const targetIndex = direction === 'down'
+        ? Math.min(currentActiveCardIndex + 1, cardCount - 1)
+        : Math.max(currentActiveCardIndex - 1, 0);
+
+      if (targetIndex !== currentActiveCardIndex) {
+        isKeyNavAnimating = true;
+        isProgrammaticScroll = true;
+
+        // Set active state immediately to prevent flicker
+        setActiveCard(targetIndex);
+
+        const cardProgress = targetIndex / (cardCount - 1);
+        const targetScroll = mainScrollTrigger.start + (mainScrollTrigger.end - mainScrollTrigger.start) * cardProgress;
+
+        gsap.to(window, {
+          scrollTo: targetScroll,
+          duration: 0.6,
+          ease: 'power2.out',
+          onComplete: () => {
+            isKeyNavAnimating = false;
+            isProgrammaticScroll = false;
+            showCounterHighlight(true); // Lock the highlight
+          }
+        });
+      }
+    }
+
+    // Control highlight elements and functions
+    const controlUp = document.getElementById('control-up');
+    const controlDown = document.getElementById('control-down');
+    const controlUpHighlight = controlUp.querySelector('.control-highlight');
+    const controlDownHighlight = controlDown.querySelector('.control-highlight');
+
+    function showControlHighlight(highlight, cell) {
+      gsap.to(highlight, { opacity: 1, duration: 0.25 });
+      gsap.to(cell, { color: '#000000', duration: 0.25 });
+    }
+
+    function hideControlHighlight(highlight, cell) {
+      gsap.to(highlight, { opacity: 0, duration: 0.25 });
+      gsap.to(cell, { color: '#4D4D4D', duration: 0.25 });
+    }
+
+    function flashControlHighlight(highlight, cell) {
+      gsap.to(highlight, { opacity: 1, duration: 0.25 });
+      gsap.to(cell, { color: '#000000', duration: 0.25, onComplete: () => {
+        gsap.to(highlight, { opacity: 0, duration: 0.25 });
+        gsap.to(cell, { color: '#4D4D4D', duration: 0.25 });
+      }});
+    }
+
+    // Control hover events
+    controlUp.addEventListener('mouseenter', () => showControlHighlight(controlUpHighlight, controlUp));
+    controlUp.addEventListener('mouseleave', () => hideControlHighlight(controlUpHighlight, controlUp));
+    controlDown.addEventListener('mouseenter', () => showControlHighlight(controlDownHighlight, controlDown));
+    controlDown.addEventListener('mouseleave', () => hideControlHighlight(controlDownHighlight, controlDown));
+
+    // Back to start button
+    const backToStart = document.getElementById('back-to-start');
+    const backToStartHighlight = backToStart.querySelector('.back-to-start-highlight');
+
+    backToStart.addEventListener('mouseenter', () => showControlHighlight(backToStartHighlight, backToStart));
+    backToStart.addEventListener('mouseleave', () => hideControlHighlight(backToStartHighlight, backToStart));
+
+    backToStart.addEventListener('click', () => {
+      if (isFullscreenMode || isAnimating || isKeyNavAnimating) return;
+
+      flashControlHighlight(backToStartHighlight, backToStart);
+
+      // Set active state immediately to prevent flicker
+      setActiveCard(0);
+
+      isProgrammaticScroll = true;
+      gsap.to(window, {
+        scrollTo: mainScrollTrigger.start,
+        duration: 0.8,
+        ease: 'power2.out',
+        onComplete: () => {
+          isProgrammaticScroll = false;
+          showCounterHighlight(true);
+        }
+      });
+    });
+
+    // Open link button
+    const openLink = document.getElementById('open-link');
+    const openLinkHighlight = openLink.querySelector('.open-link-highlight');
+    let currentLinkUrl = null;
+
+    openLink.addEventListener('mouseenter', () => showControlHighlight(openLinkHighlight, openLink));
+    openLink.addEventListener('mouseleave', () => hideControlHighlight(openLinkHighlight, openLink));
+
+    openLink.addEventListener('click', () => {
+      if (currentLinkUrl) {
+        window.open(currentLinkUrl, '_blank');
+      }
+    });
+
+    // Update open-link button visibility and URL based on active card
+    function updateOpenLinkButton(cardIndex) {
+      const card = cards[cardIndex];
+      const iframe = card.querySelector('.card-iframe');
+      const video = card.querySelector('.card-video');
+      const isLastCard = cardIndex === cardCount - 1;
+      const noLink = card.dataset.noLink === 'true';
+
+      // Check for custom data-link or fall back to embed data-src
+      const customLink = card.dataset.link;
+      const embedSrc = iframe?.dataset.src || video?.dataset.src;
+
+      if ((customLink || embedSrc) && !isLastCard && !noLink) {
+        currentLinkUrl = customLink || embedSrc;
+        openLink.classList.add('visible');
+      } else {
+        currentLinkUrl = null;
+        openLink.classList.remove('visible');
+      }
+    }
+
+    // Initialize open-link button state
+    updateOpenLinkButton(0);
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      // Exit fullscreen on Escape
+      if (e.key === 'Escape' && fullscreenCard) {
+        exitFullscreen();
+        return;
+      }
+
+      // Arrow key navigation between cards
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault(); // Prevent default scroll
+        const direction = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 'down' : 'up';
+
+        // Flash the corresponding control highlight
+        if (direction === 'up') {
+          flashControlHighlight(controlUpHighlight, controlUp);
+        } else {
+          flashControlHighlight(controlDownHighlight, controlDown);
+        }
+
+        navigateCards(direction);
+      }
+    });
+
+    // Control button click handlers
+    controlUp.addEventListener('click', () => {
+      flashControlHighlight(controlUpHighlight, controlUp);
+      navigateCards('up');
+    });
+
+    controlDown.addEventListener('click', () => {
+      flashControlHighlight(controlDownHighlight, controlDown);
+      navigateCards('down');
+    });
+
+    // Logo click - navigate to first card
+    document.getElementById('logo').addEventListener('click', () => {
+      if (isFullscreenMode || isAnimating || isKeyNavAnimating) return;
+
+      isProgrammaticScroll = true;
+      setActiveCard(0);
+      gsap.to(window, {
+        scrollTo: mainScrollTrigger.start,
+        duration: 0.8,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          isProgrammaticScroll = false;
+          showCounterHighlight(true);
+        }
+      });
+    });
+
+    // Exit fullscreen on clicking outside the card
+    document.querySelector('.coverflow-container').addEventListener('click', (e) => {
+      if (fullscreenCard && !fullscreenCard.contains(e.target)) {
+        exitFullscreen();
+      }
+    });
+
+    // Play button click handlers - load iframe/video and hide overlay
+    document.querySelectorAll('.play-button').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent card click
+        const cardContent = btn.closest('.card-content');
+        const iframe = cardContent.querySelector('.card-iframe');
+        const video = cardContent.querySelector('.card-video');
+        const overlay = cardContent.querySelector('.card-content-overlay');
+
+        // Hide play button and overlay
+        btn.classList.add('hidden');
+        overlay.classList.add('hidden');
+
+        if (iframe && iframe.dataset.src) {
+          // Load and show iframe
+          iframe.src = iframe.dataset.src;
+          iframe.classList.add('visible');
+        }
+
+        if (video && video.dataset.src) {
+          // Load and show video
+          video.src = video.dataset.src;
+          video.classList.add('visible');
+          video.play();
+        }
+      });
+    });
+
+    // Click on visible iframe/video area to enable interaction
+    document.querySelectorAll('.card-content').forEach((content) => {
+      content.addEventListener('click', (e) => {
+        const iframe = content.querySelector('.card-iframe.visible');
+        const video = content.querySelector('.card-video.visible');
+        if (iframe && !iframe.classList.contains('interactive')) {
+          iframe.classList.add('interactive');
+          resetTilt();
+        }
+        if (video && !video.classList.contains('interactive')) {
+          video.classList.add('interactive');
+          resetTilt();
+        }
+      });
+    });
+
+    // Disable iframe/video interaction when scrolling starts
+    lenis.on('scroll', () => {
+      document.querySelectorAll('.card-iframe.interactive').forEach(iframe => {
+        iframe.classList.remove('interactive');
+      });
+      document.querySelectorAll('.card-video.interactive').forEach(video => {
+        video.classList.remove('interactive');
+      });
+      // Reset tilt on scroll
+      if (isTilting || currentTiltCard) {
+        isTilting = false;
+        currentTiltCard = null;
+        applyTiltToStack(0, 0, TILT_DURATION);
+      }
+    });
+
+    // === Mouse Tilt Effect ===
+    const TILT_MAX = 4; // max rotation in degrees
+    const TILT_DURATION = 0.4; // lerp duration in seconds
+    const TILT_DEPTH_FALLOFF = 0.85; // multiplier per depth level for behind cards
+
+    function applyTiltToStack(rotateX, rotateY, duration) {
+      const activeIdx = currentActiveCardIndex;
+      cards.forEach((card, i) => {
+        if (i > activeIdx) return; // skip cards below/ahead
+        const depth = activeIdx - i; // 0 = active, 1 = one behind, etc.
+        const falloff = Math.pow(TILT_DEPTH_FALLOFF, depth);
+        gsap.to(card, {
+          rotateX: rotateX * falloff,
+          rotateY: rotateY * falloff,
+          duration: duration,
+          ease: 'power2.out',
+          overwrite: 'auto'
+        });
+      });
+    }
+
+    // Listen on the non-transforming container to avoid edge-flicker
+    const coverflowContainer = document.querySelector('.coverflow-container');
+
+    coverflowContainer.addEventListener('mousemove', (e) => {
+      if (isFullscreenMode || isAnimating || isKeyNavAnimating) return;
+
+      const activeCard = cards[currentActiveCardIndex];
+
+      // Skip if active card embed is interactive
+      if (activeCard.querySelector('.card-iframe.interactive, .card-video.interactive')) return;
+
+      // Calculate tilt relative to the active card's center
+      const rect = activeCard.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      // Normalized offset from center (-1 to 1)
+      const offsetX = gsap.utils.clamp(-1, 1, (e.clientX - centerX) / (rect.width / 2));
+      const offsetY = gsap.utils.clamp(-1, 1, (e.clientY - centerY) / (rect.height / 2));
+
+      // rotateY: positive when mouse is right of center
+      // rotateX: negative when mouse is below center (bottom lifts toward viewer)
+      const rotateY = offsetX * TILT_MAX;
+      const rotateX = -offsetY * TILT_MAX;
+
+      isTilting = true;
+      currentTiltCard = activeCard;
+      applyTiltToStack(rotateX, rotateY, TILT_DURATION);
+    });
+
+    coverflowContainer.addEventListener('mouseleave', () => {
+      if (!isTilting) return;
+      isTilting = false;
+      currentTiltCard = null;
+      applyTiltToStack(0, 0, TILT_DURATION);
+    });
+
+    function resetTilt() {
+      if (isTilting || currentTiltCard) {
+        isTilting = false;
+        currentTiltCard = null;
+        applyTiltToStack(0, 0, 0.3);
+      }
+    }
+
+    // Refresh ScrollTrigger on resize (debounced)
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 150);
+    });
+
+    // Autoplay card 1 embed after intro animations complete
+    const card1 = cards[0];
+    const card1Iframe = card1.querySelector('.card-iframe');
+    const card1Overlay = card1.querySelector('.card-content-overlay');
+    const card1PlayBtn = card1.querySelector('.play-button');
+
+    if (card1Iframe && card1Iframe.dataset.src) {
+      // Wait for intro animations to finish + 0.5s, then load and reveal
+      setTimeout(() => {
+        // Only autoplay if card 1 is still active
+        if (currentActiveCardIndex === 0) {
+          card1Iframe.src = card1Iframe.dataset.src;
+          card1Overlay.classList.add('hidden');
+          card1PlayBtn.classList.add('hidden');
+          card1Iframe.classList.add('visible');
+        }
+      }, 2250);
+    }
+
+      </script>
+</body>
+</html>
