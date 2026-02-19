@@ -833,7 +833,6 @@
     let currentActiveCardIndex = 0;
 
     // Track tilt effect state
-    let currentTiltCard = null;
     let isTilting = false;
 
     // Track fullscreen mode to lock scrolling
@@ -953,9 +952,8 @@
         if (!isProgrammaticScroll && relativePos > -0.1 && relativePos <= 0.15) {
           if (currentActiveCardIndex !== i) {
             // Reset tilt on all cards when active changes
-            cards.forEach(c => gsap.set(c, { rotateX: 0, rotateY: 0 }));
+            applyTiltToStack(0, 0, 0);
             isTilting = false;
-            currentTiltCard = null;
             // Unload iframe from previous card
             unloadCardIframe(cards[currentActiveCardIndex]);
             // Remove active class from previous card
@@ -1304,8 +1302,15 @@
         duration: 0.5,
         ease: 'power2.inOut',
         onComplete: () => {
-          // Now at center with normal scale - drop z-index back to normal
-          gsap.set(card, { zIndex: 10, clearProps: 'left,width,height' });
+          // Kill residual tweens and restore clean state
+          gsap.killTweensOf(card);
+          gsap.set(card, { zIndex: 10 });
+          // Restore responsive CSS calc values (avoids clearProps jump)
+          card.style.left = '';
+          card.style.width = '';
+          card.style.height = '';
+          // Smoothly ease into tilt from current mouse position
+          applyTiltFromPosition(lastMouseX, lastMouseY, 0.8);
           card.classList.remove('fullscreen');
           // Remove performance optimizations
           card.style.contain = '';
@@ -1618,9 +1623,8 @@
         video.classList.remove('interactive');
       });
       // Reset tilt on scroll
-      if (isTilting || currentTiltCard) {
+      if (isTilting) {
         isTilting = false;
-        currentTiltCard = null;
         applyTiltToStack(0, 0, TILT_DURATION);
       }
     });
@@ -1629,6 +1633,7 @@
     const TILT_MAX = 4; // max rotation in degrees
     const TILT_DURATION = 0.4; // lerp duration in seconds
     const TILT_DEPTH_FALLOFF = 0.85; // multiplier per depth level for behind cards
+    let lastMouseX = 0, lastMouseY = 0; // track last known mouse position
 
     function applyTiltToStack(rotateX, rotateY, duration) {
       const activeIdx = currentActiveCardIndex;
@@ -1649,7 +1654,27 @@
     // Listen on the non-transforming container to avoid edge-flicker
     const coverflowContainer = document.querySelector('.coverflow-container');
 
+    // Calculate and apply tilt from given screen coordinates
+    function applyTiltFromPosition(clientX, clientY, duration) {
+      const activeCard = cards[currentActiveCardIndex];
+      const rect = activeCard.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const offsetX = gsap.utils.clamp(-1, 1, (clientX - centerX) / (rect.width / 2));
+      const offsetY = gsap.utils.clamp(-1, 1, (clientY - centerY) / (rect.height / 2));
+
+      const rotateY = offsetX * TILT_MAX;
+      const rotateX = -offsetY * TILT_MAX;
+
+      isTilting = true;
+      applyTiltToStack(rotateX, rotateY, duration);
+    }
+
     coverflowContainer.addEventListener('mousemove', (e) => {
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+
       if (isFullscreenMode || isAnimating || isKeyNavAnimating) return;
 
       const activeCard = cards[currentActiveCardIndex];
@@ -1657,36 +1682,18 @@
       // Skip if active card embed is interactive
       if (activeCard.querySelector('.card-iframe.interactive, .card-video.interactive')) return;
 
-      // Calculate tilt relative to the active card's center
-      const rect = activeCard.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-
-      // Normalized offset from center (-1 to 1)
-      const offsetX = gsap.utils.clamp(-1, 1, (e.clientX - centerX) / (rect.width / 2));
-      const offsetY = gsap.utils.clamp(-1, 1, (e.clientY - centerY) / (rect.height / 2));
-
-      // rotateY: positive when mouse is right of center
-      // rotateX: negative when mouse is below center (bottom lifts toward viewer)
-      const rotateY = offsetX * TILT_MAX;
-      const rotateX = -offsetY * TILT_MAX;
-
-      isTilting = true;
-      currentTiltCard = activeCard;
-      applyTiltToStack(rotateX, rotateY, TILT_DURATION);
+      applyTiltFromPosition(e.clientX, e.clientY, TILT_DURATION);
     });
 
     coverflowContainer.addEventListener('mouseleave', () => {
       if (!isTilting) return;
       isTilting = false;
-      currentTiltCard = null;
       applyTiltToStack(0, 0, TILT_DURATION);
     });
 
     function resetTilt() {
-      if (isTilting || currentTiltCard) {
+      if (isTilting) {
         isTilting = false;
-        currentTiltCard = null;
         applyTiltToStack(0, 0, 0.3);
       }
     }
